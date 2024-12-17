@@ -27,7 +27,7 @@ CREATE TABLE posts
     content    TEXT    NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP
-    CONSTRAINT chk_content_length CHECK (LENGTH(content) > 0)
+    CONSTRAINT chk_content_length CHECK (LENGTH(content) <= 500)
 );
 
 CREATE TABLE post_photos

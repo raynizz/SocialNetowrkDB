@@ -152,4 +152,3 @@ CREATE TRIGGER before_friendship_update
 EXECUTE FUNCTION restrict_friendship_status_change();
 
 UPDATE friends SET status = 'pending' WHERE friendship_id = 1;
-

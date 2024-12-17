@@ -143,14 +143,14 @@ WHERE likes.created_at >= NOW() - INTERVAL '1 week'
 ORDER BY likes.created_at DESC;
 
 -- Отримати всіх користувачів з України
-SELECT profiles.profile_picture_url,
-       users.username,
-       users.full_name,
-       profiles.bio,
-       profiles.location
-FROM users
-         JOIN profiles ON users.user_id = profiles.user_id
-WHERE profiles.location LIKE '%Ukraine%';
+SELECT profile_picture_url,
+       (SELECT username FROM users WHERE users.user_id = profiles.user_id) AS username,
+       (SELECT full_name FROM users WHERE users.user_id = profiles.user_id) AS full_name,
+       bio,
+       location
+FROM profiles
+WHERE location LIKE '%Ukraine%'
+  AND user_id IN (SELECT user_id FROM users);
 
 -- Отримати всіх учасників груп, у яких державна пошта
 SELECT users.username,
@@ -196,28 +196,33 @@ WHERE comments.comment_id IS NULL
   AND likes.like_id IS NULL;
 
 -- Отримати найпопулярніший хештег за кількістю використань
-SELECT hashtags.name,
-       COUNT(post_hashtags.post_id) AS usage_count
+SELECT name,
+       (SELECT COUNT(post_id)
+        FROM post_hashtags
+        WHERE post_hashtags.hashtag_id = hashtags.hashtag_id) AS usage_count
 FROM hashtags
-         JOIN post_hashtags ON hashtags.hashtag_id = post_hashtags.hashtag_id
-GROUP BY hashtags.name
 ORDER BY usage_count DESC
 LIMIT 1;
 
 -- Отримати користувачів, які отримали сумарно більше 4 лайків на свої пости
-SELECT users.username,
-       SUM(get_post_likes(posts.post_id)) AS total_likes
+SELECT username,
+       (SELECT SUM(get_post_likes(post_id))
+        FROM posts
+        WHERE posts.user_id = users.user_id) AS total_likes
 FROM users
-         JOIN posts ON users.user_id = posts.user_id
-GROUP BY users.username
-HAVING SUM(get_post_likes(posts.post_id)) > 4
+WHERE (SELECT SUM(get_post_likes(post_id))
+       FROM posts
+       WHERE posts.user_id = users.user_id) > 4
 ORDER BY total_likes DESC;
 
 -- Отримати кількість непрочитаних повідомлень для кожного користувача
-SELECT users.username,
-       COUNT(messages.message_id) AS unread_messages_count
-FROM users
-         JOIN messages ON users.user_id = messages.receiver_id
-WHERE messages.is_read = FALSE
-GROUP BY users.username
+SELECT
+    u.username,
+    (
+        SELECT COUNT(m.message_id)
+        FROM messages m
+        WHERE m.receiver_id = u.user_id AND m.is_read = FALSE
+    ) AS unread_messages_count
+FROM
+    users u
 ORDER BY unread_messages_count DESC;
